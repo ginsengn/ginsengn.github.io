@@ -437,13 +437,16 @@ function nctTinhModifier(starKey, cungChi, thangChi) {
     const banViList = sd.banVi;
     const kq = {
         tamHopDu: false, tamHopChu: false, tamHopBo: null,
+        tamHopBanPhan: false,
         lucHopCung: false, lucHopThang: false,
         haiCung: false, haiThang: false,
         tamHinhDu: false, tamHinhBo: null,
+        hinhBanPhanCung: false, hinhBanPhanThang: false,   // << MỚI
         ghiChu: [],
     };
 
     banViList.forEach(bv => {
+        // ---- Tam Hợp đủ bộ (3/3) ----
         const th = nctDuTamHop(bv, cungChi, thangChi);
         if (th && th.daDu && !kq.tamHopDu) {
             kq.tamHopDu = true;
@@ -451,11 +454,46 @@ function nctTinhModifier(starKey, cungChi, thangChi) {
             kq.tamHopChu = (hanh === th.bo.cuc);
             kq.ghiChu.push(`Đủ Tam Hợp ${th.bo.chis.join('-')} (cục ${th.bo.cuc}) — sao ${kq.tamHopChu ? 'LÀ CHỦ hưởng lợi chính' : 'ăn theo (theo đóm ăn tàn)'}.`);
         }
+        // ---- Tam Hợp BÁN PHẦN (2/3, thiếu 1 chi) — "cảm tình nền tảng":
+        //      không giúp không hại trực tiếp, nhưng xoa dịu bớt hung khí
+        //      từ nguồn khác (Cung/Tháng/Hình...) — KHÔNG cộng điểm thẳng. ----
+        if (!kq.tamHopDu) {
+            const boTH = nctTimTamHop(bv);
+            if (boTH) {
+                const coCung = boTH.chis.includes(cungChi) && cungChi !== bv;
+                const coThang = boTH.chis.includes(thangChi) && thangChi !== bv;
+                if (coCung || coThang) {
+                    kq.tamHopBanPhan = true;
+                    kq.ghiChu.push(`Bán phần Tam Hợp ${boTH.chis.join('-')} (thiếu 1 chi) — có "cảm tình nền", không cộng điểm trực tiếp nhưng xoa dịu bớt hung khí khác.`);
+                }
+            }
+        }
+        // ---- Lục Hợp ----
         if (nctLaLucHop(bv, cungChi) && bv !== cungChi) kq.lucHopCung = true;
         if (nctLaLucHop(bv, thangChi) && bv !== thangChi) kq.lucHopThang = true;
+        // ---- Lục Hại ----
         if (nctLaLucHai(bv, cungChi)) kq.haiCung = true;
         if (nctLaLucHai(bv, thangChi)) kq.haiThang = true;
+        // ---- Hình BÁN PHẦN (2/3 của 1 bộ Tam Hình, thiếu 1 chi) — môi
+        //      trường (Cung/Tháng) luôn là bên MẠNH hơn Thiên Tinh, nên áp
+        //      chế/gây khó cho sao, kể cả khi 2 chi đó ĐỒNG THỜI cũng là
+        //      Lục Hợp (như cặp Tỵ-Thân) — Hình lấn át, Hợp không cứu được. ----
+        NCT_TAM_HINH.forEach(set => {
+            if (starKey === 'Thiên Nhuế' && set.ten === 'Vô ân chi hình') return; // đã xử lý riêng trong data
+            if (!set.chis.includes(bv)) return;
+            if (set.chis.includes(cungChi) && cungChi !== bv) kq.hinhBanPhanCung = true;
+            if (set.chis.includes(thangChi) && thangChi !== bv) kq.hinhBanPhanThang = true;
+        });
     });
+
+    if (kq.hinhBanPhanCung) {
+        kq.ghiChu.push(`Hình bán phần ở Cung Cư (${cungChi}) — môi trường áp chế Thiên Tinh (gây khó, soi mói, cản trở); nếu 2 chi này đồng thời Lục Hợp thì Hợp KHÔNG cứu được vì Hình lấn át.`);
+        kq.lucHopCung = false; // Hình lấn át — huỷ bỏ softening của Lục Hợp trên cùng 1 cặp chi
+    }
+    if (kq.hinhBanPhanThang) {
+        kq.ghiChu.push(`Hình bán phần ở Tháng (${thangChi}) — môi trường áp chế Thiên Tinh, Lục Hợp (nếu trùng) KHÔNG cứu được.`);
+        kq.lucHopThang = false;
+    }
     if (kq.lucHopCung) kq.ghiChu.push(`Lục Hợp ở Cung Cư (${cungChi}).`);
     if (kq.lucHopThang) kq.ghiChu.push(`Lục Hợp ở Tháng (${thangChi}).`);
     if (kq.haiCung) kq.ghiChu.push(`Lục Hại ở Cung Cư (${cungChi}).`);
@@ -520,11 +558,18 @@ function nctTinhDiemTongHop(starKey, cungChi, dayChi, thangChi) {
 
     if (modifier.tamHinhDu) {
         diemCuoi = Math.min(diemCuoi, -1.0);
-    } else if (modifier.tamHopDu) {
-        diemCuoi += modifier.tamHopChu ? 0.3 : 0.15;
+    } else {
+        if (modifier.hinhBanPhanCung) diemCuoi -= 0.25;   // môi trường áp chế — Cung (trọng số 40%)
+        if (modifier.hinhBanPhanThang) diemCuoi -= 0.35;  // môi trường áp chế — Tháng (trọng số 60%, mạnh hơn)
+        if (modifier.tamHopDu) {
+            diemCuoi += modifier.tamHopChu ? 0.3 : 0.15;
+        }
+        if (modifier.haiCung || modifier.haiThang) diemCuoi -= 0.1;
+        if ((modifier.lucHopCung || modifier.lucHopThang) && diemCuoi < 0) diemCuoi += 0.1;
+        if (modifier.tamHopBanPhan && !modifier.tamHopDu && diemCuoi < 0) {
+            diemCuoi *= 0.75; // "cảm tình nền" — xoa dịu bớt hung khí (không cộng điểm dương trực tiếp)
+        }
     }
-    if (modifier.haiCung || modifier.haiThang) diemCuoi -= 0.1;
-    if ((modifier.lucHopCung || modifier.lucHopThang) && diemCuoi < 0) diemCuoi += 0.1;
 
     diemCuoi = Math.max(-1.5, Math.min(1.3, diemCuoi));
 
