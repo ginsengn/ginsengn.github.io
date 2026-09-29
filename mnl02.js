@@ -342,27 +342,61 @@ function nct2CongHuong(starKey, cungChi) {
     return a.filter(t => b.includes(t)).map(t => NCT2_TAG_TEN[t] || t);
 }
 
+// F6b. Rủi ro có thể "hiện hình" theo việc cầu (mặt tối sao ∪ góc khuất cung; cộng hưởng nêu trước)
+const NCT2_RUI_RO_CHUNG = {
+    tai_nan: 'tai nạn, sự cố bất ngờ', hoa_khi: 'hoả hoạn, chập điện, nóng bức', hao_tai: 'hao tài, tốn của, vượt chi phí',
+    mat_cua: 'mất của, trộm cắp', lua_dao: 'bị lừa dối, đối tác/tin tức không thật', kien_tung: 'tranh chấp, kiện tụng',
+    benh: 'bệnh tật, sức khoẻ suy giảm', tri_tre: 'trì trệ, chậm trễ, đình đốn', chia_ly: 'chia ly, rạn nứt',
+    do_vo: 'đổ vỡ, hỏng việc', that_bai: 'thất bại, không thành', thi_phi: 'thị phi, tiếng xấu', tang_che: 'tang chế, chuyện buồn',
+    nhap_mo: 'nhập mộ: việc bị chôn vùi, giam hãm', lao_tam: 'lao tâm khổ tứ', thai_hong: 'hỏng thai',
+    hon_thai_kt: 'hôn nhân/thai sản không thuận', kinh_so: 'kinh sợ, nghi hoặc', dam_dat: 'dâm dật, sa đà',
+    cai_va: 'cãi vã', pha_ngang: 'bị phá ngang', thay_doi: 'thay đổi, đảo lộn liên tục', canh_tranh: 'cạnh tranh, dời đổi',
+    lo_au: 'lo âu, buồn phiền', oan_trai: 'oan trái', tham_hiem: 'thâm hiểm, ngầm hại', giay_to: 'vướng giấy tờ, thủ tục',
+};
+const NCT2_RUI_RO_VIEC = {
+    XD: { tai_nan: 'tai nạn lao động, sự cố công trình, ngã đổ', hoa_khi: 'cháy nổ, chập điện, nóng bức công trường',
+          hao_tai: 'vượt dự toán, chi phí phát sinh, thất thoát', mat_cua: 'mất vật liệu, mất cắp công trường',
+          lua_dao: 'nhà thầu/nhà cung cấp lừa dối, bội tín, thông tin sai', kien_tung: 'tranh chấp ranh giới, kiện tụng đất đai',
+          benh: 'bệnh do bụi, nắng nóng, kiệt sức; thương tổn chân tay', tri_tre: 'đình trệ, chậm tiến độ',
+          do_vo: 'sai hỏng, đổ vỡ kế hoạch/công trình', nhap_mo: 'nhập mộ: đất/việc bị chôn vùi, giam hãm',
+          that_bai: 'công trình dang dở, không như ý', thay_doi: 'phải đổi thiết kế/phương án liên tục' },
+    TAI: { hao_tai: 'thua lỗ, hao tổn vốn', lua_dao: 'bị lừa, đối tác không thật', mat_cua: 'mất tiền, trộm cắp', tri_tre: 'dòng tiền đình trệ',
+           that_bai: 'thất bại, kiếp tài', do_vo: 'đổ vỡ hợp tác' },
+    XH: { tai_nan: 'tai nạn trên đường, sự cố chuyến đi', mat_cua: 'mất đồ, gặp trộm cướp', lua_dao: 'gặp lừa đảo', benh: 'ốm đau, mệt mỏi dọc đường',
+          tri_tre: 'chậm trễ, chưa đi được' },
+    BT: { benh: 'bệnh nặng thêm, dai dẳng', tri_tre: 'bệnh trì trệ, khó dứt', tai_nan: 'tai biến, biến chứng bất ngờ', tang_che: 'nguy cơ nghiêm trọng (cần xem Lục Hào)' },
+    HN: { chia_ly: 'chia ly, rạn nứt', lua_dao: 'thay lòng, tráo trở', dam_dat: 'dâm sự, sa đà', hon_thai_kt: 'hôn nhân không thuận', cai_va: 'cãi vã, xung đột' },
+    TS: { thai_hong: 'hỏng thai/lưu thai', hon_thai_kt: 'thai sản không thuận', benh: 'sức khoẻ mẹ suy giảm', tai_nan: 'sự cố nguy hiểm khi sinh nở' },
+};
+function nct2RuiRo(starKey, cungChi, ma) {
+    const meta = NCT2_STAR_META[starKey], cung = NCT2_CUNG_META[cungChi];
+    const ch = meta.darkTags.filter(t => cung.hungTags.includes(t));
+    const rest = meta.darkTags.filter(t => !ch.includes(t)).concat(cung.hungTags.filter(t => !meta.darkTags.includes(t)));
+    const ph = t => (NCT2_RUI_RO_VIEC[ma] && NCT2_RUI_RO_VIEC[ma][t]) || NCT2_RUI_RO_CHUNG[t] || NCT2_TAG_TEN[t] || t;
+    return { congHuong: ch.map(ph), khac: rest.map(ph) };
+}
+
 // F7. Mức cảnh giác
 const NCT2_CANH_GIAC_TEN = {
     thap: 'THẤP', trung: 'TRUNG BÌNH (đề phòng cấp trung)', cao: 'CAO', caoNhat: 'CAO NHẤT',
 };
-function nct2CanhGiac(meta, tinh, groupEff, gate) {
+function nct2CanhGiac(meta, tinh, groupEff, gate, cungTD) {
     if (meta.phanLoai === 'hung') {
         if (!tinh.ok) return 'caoNhat';
         return (groupEff === 'suy' || !gate) ? 'cao' : 'trung';
     }
     if (!tinh.ok) {
-        // sao Cát tính suy: cung suy -> "đèn kém đường xấu" (nhẹ hơn); còn lại cao
+        // Cung vượng mà thù địch với sao suy: lực mạnh đè xuống sao -> nặng nhất
+        if (cungTD && groupEff === 'vuong') return 'caoNhat';
         if (tinh.key === 'suyTuyet') return 'cao';
-        return groupEff === 'suy' ? 'trung' : 'cao';
+        return groupEff === 'suy' ? 'trung' : 'cao'; // cung suy + sao Cát tính: "đèn kém đường xấu"
     }
     return (!gate || groupEff === 'suy') ? 'trung' : 'thap';
 }
 
 // F8. Diễn giải phối Sao × Cung (ma trận + mô hình môi trường/nhân sự)
 function nct2PhoiSaoCung(P) {
-    const { meta, tinh, groupEff, viTri, ts } = P;
-    const cungTen = NCT2_NHOM_TEN[P.ts.nhom];
+    const { meta, tinh, groupEff, viTri, ts, cungTD, kq } = P;
     const L = [];
     if (viTri === 'chinh') {
         L.push('LÂM CUNG: sao đóng đúng nhà (chính vị) — như vua ngự trong nước mình, kiểm soát, làm chủ.' +
@@ -370,6 +404,9 @@ function nct2PhoiSaoCung(P) {
     } else if (viTri === 'khach') {
         L.push('THỨ VỊ: sao là đại quý khách ở nước bạn thân thiện — được đón tiếp, thuận lợi nhưng KHÔNG làm chủ; phụ thuộc chủ nhà (Cung) nhiều hơn.');
     }
+    const tdVuong = `Cung VƯỢNG nhưng THÙ ĐỊCH với sao (${kq.nhanCung}): Cung không phải nơi nương náu mà là lực mạnh dồn xuống đè/xung tán sao — như người kiệt sức, tàn tật bị đặt giữa môi trường mạnh và khắc nghiệt. Đây là tổ hợp nặng nhất: cái xấu bộc phát dữ dội, KHÔNG còn "nhỏ, ẩn".`;
+    const tdSuy = `Cung SUY nhưng vẫn THÙ ĐỊCH với sao (${kq.nhanCung}): vừa không nuôi được sao vừa tiếp tục áp chế — cái xấu lộ rõ, rộng.`;
+    const tdTb = `Cung trung bình nhưng THÙ ĐỊCH với sao (${kq.nhanCung}): áp chế vừa phải, cái xấu bị đẩy mạnh, mặt tốt bị kìm hãm.`;
     if (meta.phanLoai === 'hung') {
         if (tinh.ok) {
             if (P.starKey === 'Thiên Không') L.push('Thiên Không từ trung bình trở lên: dù vượng cũng chỉ che lấp cái xấu, không có mảng nào thật sự sáng; nguy cơ ẩn tiềm tàng (chưa phát lộ) vẫn nhiều — đề phòng cấp trung' + (groupEff === 'vuong' ? ' (môi trường tốt làm hung tính giảm một phần).' : '.'));
@@ -377,8 +414,11 @@ function nct2PhoiSaoCung(P) {
             else if (groupEff === 'trungBinh') L.push('Hung tinh từ trung bình trở lên, môi trường vừa: mặt tốt nổi ở vài mảng chủ quản, mặt xấu bẩm sinh vẫn lộ song song ở mức nhỏ; đề phòng cấp trung.');
             else L.push('Hung tinh gặp MÔI TRƯỜNG XẤU (cung suy): đây là đất để hung tính thể hiện bản tính đặc hữu, dù sao chưa suy — đề phòng cấp cao.');
         } else {
-            L.push('Hung tinh SUY (như người sầu đời, mất kiểm soát): hung tính bộc phát, chỉ thấy cái xấu; môi trường tốt không cứu được.');
-            if (groupEff === 'vuong') L.push('Cung vượng: hung tính KHÔNG do Cung kích phát; sao tự tìm "góc khuất" nhỏ của Cung để sa vào — xấu có thật nhưng giới hạn, ẩn (vết ố trên tấm áo đẹp).');
+            L.push('Hung tinh SUY (mất kiểm soát, như người sầu đời): hung tính bộc phát, chỉ thấy cái xấu; môi trường tốt không cứu được.');
+            if (cungTD && groupEff === 'vuong') L.push(tdVuong);
+            else if (cungTD && groupEff === 'suy') L.push(tdSuy);
+            else if (cungTD) L.push(tdTb);
+            else if (groupEff === 'vuong') L.push('Cung vượng và không thù địch với sao: hung tính KHÔNG do Cung kích phát; sao tự tìm "góc khuất" nhỏ của Cung để sa vào — xấu có thật nhưng giới hạn, ẩn (vết ố trên tấm áo đẹp).');
             else if (groupEff === 'suy') L.push('Cung suy: góc khuất lộ rõ, rộng, dễ lan — Cung là đất dụng võ của hung tính (mức nguy hiểm cao nhất).');
             else L.push('Cung trung bình: mặt tiêu cực được đẩy mạnh, mặt tốt bị kìm hãm.');
         }
@@ -388,12 +428,30 @@ function nct2PhoiSaoCung(P) {
             else if (groupEff === 'trungBinh') L.push('Sao từ trung bình trở lên + cung trung bình: mặt tốt phát lộ vừa phải, mặt xấu nhỏ; có thể dàn xếp để ra kết quả ổn.');
             else L.push('"Trong vui có buồn": sao đủ lực nhưng cung (môi trường) suy — tài năng bị giam hãm, gò bó, cái tốt thực tế thấp hơn nhiều so với danh nghĩa; có risk phát sinh.');
         } else {
-            if (groupEff === 'vuong') L.push('Sao suy nhưng cung vượng: sao vẫn phát mặt xấu (bản tính "sầu đời"), chọn góc khuất nhỏ của Cung; xấu có thật nhưng giới hạn/ẩn. Cung tốt không cứu được sao suy.');
-            else if (groupEff === 'suy') L.push('Sao suy + cung suy (sao Cát tính): như xe đèn pha kém trên đường gồ ghề — chậm hành trình, mất thời gian, mệt mỏi, bất tiện; vẫn quan sát và xoay xở được, chưa đến mức thảm hoạ.');
-            else L.push('Sao suy + cung trung bình: mặt tiêu cực bị đẩy mạnh, mặt tốt bị kìm hãm.');
+            if (cungTD && groupEff === 'vuong') L.push('Sao suy: ' + tdVuong);
+            else if (groupEff === 'vuong') L.push('Sao suy nhưng cung vượng và không thù địch: sao vẫn phát mặt xấu (bản tính "sầu đời"), chọn góc khuất nhỏ của Cung; xấu có thật nhưng giới hạn/ẩn. Cung tốt không cứu được sao suy.');
+            else if (groupEff === 'suy') L.push('Sao suy + cung suy (sao Cát tính): như xe đèn pha kém trên đường gồ ghề — chậm hành trình, mất thời gian, mệt mỏi, bất tiện; vẫn quan sát và xoay xở được, chưa đến mức thảm hoạ.' + (cungTD ? ' (Cung còn thù địch với sao nên khó hơn mức "đèn kém" thông thường.)' : ''));
+            else L.push(cungTD ? 'Sao suy: ' + tdTb : 'Sao suy + cung trung bình: mặt tiêu cực bị đẩy mạnh, mặt tốt bị kìm hãm.');
             if (tinh.key === 'suyTuyet') L.push('Sao suy tuyệt: chỉ thấy cái xấu, tính xấu bộc phát dữ dội; Cung quyết định cái xấu nào được active tối đa.');
         }
     }
+    return L;
+}
+
+// F8b. Bức tranh tổng hợp (khi sao suy): gom Sao + Cung + Tháng
+function nct2BucTranh(P, thangChi) {
+    const { tinh, kq, ts } = P;
+    const cung = NCT2_CUNG_META[P.cungChi];
+    const sd = NCT_STAR_DATA[P.starKey];
+    const L = [];
+    L.push(`• Thiên Tinh ${P.starKey} (bản vị ${sd.banVi.join('/')}) ở thế ${tinh.ten.toUpperCase()} (điểm ${kq.diemCuoi.toFixed(2)}).`);
+    L.push(`• Cung ${P.cungChi} (${cung.tuong}): ${kq.nhanCung} Theo Can Ngày, cung ở "${ts.ten}" (${NCT2_NHOM_TEN[ts.nhom]})` +
+           (P.cungTD ? (ts.nhom === 'vuong' ? ' và THÙ ĐỊCH với sao → lực mạnh dồn xuống đè/xung tán sao.' : ' và THÙ ĐỊCH với sao.') : '.'));
+    L.push(`• Tháng ${thangChi} (chiếm 60% lực nền): ${kq.nhanThang}` + (P.thangTD ? ' → thù địch mạnh.' : '') +
+           (P.giamThang ? ` ${thangChi} còn là mộ khố của hành ${sd.hanh}: sao bị giam nhốt, bó buộc (như xiềng xích, bị kết án).` : ''));
+    if (P.giamCung) L.push(`• Cung ${P.cungChi} là mộ khố của hành ${sd.hanh}: sao bị nhốt ngay trong môi trường.`);
+    if (P.cungTD && P.thangTD) L.push('• Cả Cung lẫn Tháng cùng thù địch: sao bị kẹp hai phía, không còn chỗ dựa.');
+    L.push(`• Môi trường Cung ${P.cungChi} khi hung: ${cung.hung}.`);
     return L;
 }
 
@@ -413,12 +471,14 @@ function nct2LuanViec(P, ma) {
     L.push(`Sao ${starKey} ↔ việc: ${relInfo.ky} ${relInfo.ten}` + (ghiChu ? ` — ${ghiChu}` : ''));
     L.push(`Cung ${P.cungChi} ↔ việc: ${NCT2_CUNG_VIEC_TEN[cr]}`);
 
+    const nang = (P.cungTD ? 1 : 0) + (P.thangTD ? 1 : 0) + ((P.giamCung || P.giamThang) ? 1 : 0) + ((P.cungTD && groupEff === 'vuong') ? 1 : 0);
     if (starKey === 'Thiên Không') {
-        muc = 'TRÁNH / ĐỔI HƯỚNG';
+        muc = (!tinh.ok && nang >= 3) ? 'ĐẠI HUNG — TRÁNH TUYỆT ĐỐI' : 'TRÁNH / ĐỔI HƯỚNG';
         if (tinh.ok) L.push('Thiên Không là hung tinh xấu nhiều, tốt chẳng bao nhiêu: dù chưa suy cũng chỉ được rất ít, nguy cơ ẩn tiềm tàng (chưa phát lộ) còn nhiều. Không hợp cho việc này — tuyệt đối cẩn trọng, thay đổi dự định hoặc đổi phương pháp tiếp cận.');
-        else L.push('Thiên Không suy: mọi tính xấu bộc phát (thất tán, lừa đảo, tin thất thiệt...). Tránh tiến hành; đổi dự định, tạm hoãn.');
+        else L.push('Thiên Không suy: mọi tính xấu bộc phát (thất tán, lừa đảo, tin thất thiệt...). Tránh tiến hành; đổi dự định, tạm hoãn.' + (nang >= 3 ? ' Sao bị Cung và Tháng cùng đè (xem thẻ Phối Sao × Cung): bức tranh cực kỳ thống khổ.' : ''));
     } else if (!tinh.ok) {
-        if (dark) muc = (meta.phanLoai === 'hung') ? 'NGUY — CẢNH GIÁC CAO NHẤT' : 'NGUY — CẢNH GIÁC CAO';
+        if (dark && nang >= 3) muc = 'ĐẠI HUNG — TRÁNH TUYỆT ĐỐI';
+        else if (dark) muc = (meta.phanLoai === 'hung') ? 'NGUY — CẢNH GIÁC CAO NHẤT' : 'NGUY — CẢNH GIÁC CAO';
         else muc = 'BẤT LỢI — NÊN THỦ';
         L.push(`Sao ${tinh.ten.toLowerCase()}: mặt tối tự bộc lộ dù không ai cầu (xem thẻ "Thiên Tinh — bản chất").`);
         if (dark) L.push('Việc cầu này TRÙNG mặt tối của sao khi suy → ' + ((meta.phanLoai === 'hung') ? 'mức cảnh giác cao nhất.' : 'mức cảnh giác cao.'));
@@ -455,6 +515,11 @@ function nct2LuanViec(P, ma) {
                    (groupEff === 'suy' ? ' Môi trường (cung suy) là đất để hung tính thể hiện — tăng cảnh giác.' : ''));
         }
     }
+    if (!tinh.ok || !gate || meta.phanLoai === 'hung') {
+        const rr = nct2RuiRo(starKey, P.cungChi, ma);
+        if (rr.congHuong.length) L.push('⚠ Rủi ro CỘNG HƯỞNG sao–cung (dễ hiện hình nhất) cho việc này: ' + rr.congHuong.join('; ') + '.');
+        if (rr.khac.length) L.push('Rủi ro khác có thể hiện hình: ' + rr.khac.join('; ') + '.');
+    }
     if (viTri === 'chinh' && tinh.ok) L.push('(Lâm cung: sao làm chủ tại nhà mình — nền tảng vững.)');
     if (viTri === 'khach') L.push('(Thứ vị: quý khách — thuận lợi nhưng không làm chủ, phụ thuộc môi trường.)');
     return { ma, ten: nct2TenViec(ma), muc, dong: L };
@@ -470,13 +535,20 @@ function nct2PhanTichThang(p, thangChi) {
     let groupEff = ts.nhom;
     if (viTri === 'chinh' && tinh.ok && ts.nhom === 'suy') groupEff = 'trungBinh';
     const gate = tinh.ok && (!ts.nang || viTri === 'chinh');
-    const P = { starKey: p.starKey, cungChi: p.cungChi, meta, kq, tinh, ts, viTri, groupEff, gate, giaiCuu: null };
+    const sdd = NCT_STAR_DATA[p.starKey];
+    const cungTD = kq.diemCung <= -0.5;     // Cung xung/khắc/hình/hại sao (thù địch)
+    const thangTD = kq.diemThang <= -0.5;   // Tháng thù địch với sao
+    const moChi = NCT_MO_KHO[sdd.hanh];
+    const giamCung = moChi === p.cungChi && !sdd.banVi.includes(p.cungChi) && kq.diemCung <= -0.7;
+    const giamThang = moChi === thangChi && !sdd.banVi.includes(thangChi) && kq.diemThang <= -0.7;
+    const P = { starKey: p.starKey, cungChi: p.cungChi, meta, kq, tinh, ts, viTri, groupEff, gate, giaiCuu: null,
+                cungTD, thangTD, giamCung, giamThang };
 
     // Thiên Xung + cung/ngày Dương -> cứu giải tai ách
     if (p.starKey === 'Thiên Xung' && tinh.ok && (NCT_CHI_DUONG.includes(p.cungChi) || NCT_CHI_DUONG.includes(p.dayChi))) {
         P.giaiCuu = 'Thiên Xung gặp cung/ngày Dương: có khả năng cứu giải tai ách, hung hoạ.';
     }
-    const canh = nct2CanhGiac(meta, tinh, groupEff, gate);
+    const canh = nct2CanhGiac(meta, tinh, groupEff, gate, cungTD);
     const phoi = nct2PhoiSaoCung(P);
     const congHuong = nct2CongHuong(p.starKey, p.cungChi);
     const viecs = p.topics.map(ma => nct2LuanViec(P, ma));
@@ -543,9 +615,15 @@ function nct2PhanTich(p) {
         if (!r.tinh.ok || meta.phanLoai === 'hung') {
             L.push('');
             L.push(`Góc khuất của Cung ${p.cungChi} (mặt hung) mà sao sẽ chọn: ${cung.hung}.`);
-            L.push(r.groupEff === 'vuong' ? 'Cung vượng: góc khuất nhỏ, ẩn, giới hạn.' : (r.groupEff === 'suy' ? 'Cung suy: góc khuất lộ rõ, rộng, dễ lan.' : 'Cung trung bình: góc khuất ở mức vừa.'));
+            if (r.P.cungTD && r.groupEff === 'vuong') L.push('Cung vượng và thù địch với sao: góc khuất KHÔNG còn nhỏ/ẩn — bị lực Cung dồn ép, bộc lộ mạnh.');
+            else L.push(r.groupEff === 'vuong' ? 'Cung vượng: góc khuất nhỏ, ẩn, giới hạn.' : (r.groupEff === 'suy' ? 'Cung suy: góc khuất lộ rõ, rộng, dễ lan.' : 'Cung trung bình: góc khuất ở mức vừa.'));
             if (r.congHuong.length) L.push(`⚠ CỘNG HƯỞNG với mặt tối bẩm sinh của sao: ${r.congHuong.join('; ')} — đây là "đất dụng võ", nguy hiểm nhất ở các khía cạnh này.`);
             else L.push('Không trùng trực tiếp mặt tối bẩm sinh của sao.');
+        }
+        if (!r.tinh.ok) {
+            L.push('');
+            L.push('BỨC TRANH TỔNG HỢP:');
+            nct2BucTranh(r.P, t.chi).forEach(x => L.push(x));
         }
         L.push('');
         L.push(`MỨC CẢNH GIÁC: ${NCT2_CANH_GIAC_TEN[r.canh]}.`);
@@ -574,7 +652,9 @@ function nct2PhanTich(p) {
     const tomTat =
         `Sao ${p.starKey} (${meta.nhan}) cư Cung ${p.cungChi} — Trường Sinh Can ${p.dayCan}: "${ts.ten}" (${NCT2_NHOM_TEN[ts.nhom]})` +
         (viTri === 'chinh' ? ', LÂM CUNG' : (viTri === 'khach' ? ', thứ vị (quý khách)' : '')) + '. ' +
-        kqThang.map(t => `Tháng ${t.ten}: sao ${t.r.tinh.ten}, cảnh giác ${NCT2_CANH_GIAC_TEN[t.r.canh]}`).join('; ') + '.';
+        kqThang.map(t => `Tháng ${t.ten}: sao ${t.r.tinh.ten}, cảnh giác ${NCT2_CANH_GIAC_TEN[t.r.canh]}` +
+            (!t.r.tinh.ok && t.r.P.cungTD && t.r.groupEff === 'vuong' ? ' (Cung vượng và thù địch đè sao)' : '') +
+            (t.r.P.giamThang ? ' (Tháng là mộ khố giam nhốt sao)' : '')).join('; ') + '.';
 
     const luuY = { tieuDe: 'Lưu ý', noiDung: 'Đây chỉ là dấu hiệu đầu tiên theo logic Thiên Tinh; cần xét tiếp quẻ Dịch/Lục Hào để xác nhận. Các mức điểm/ngưỡng là ước lượng tương đối, người xem tự cân nhắc nặng nhẹ.' };
 
