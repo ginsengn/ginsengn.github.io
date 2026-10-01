@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phi Thiên Xá</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--text:#1c1c1e;--sub:#6e6e73;--line:#e5e5ea;--accent:#ff3b30;--teal:#30b0c7;--hl:rgba(255,59,48,.14);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--card:#1c1c1e;--text:#f2f2f7;--sub:#98989f;--line:#38383a;--accent:#ff453a;--teal:#40c8e0;--hl:rgba(255,69,58,.25)}}
+:root[data-theme="dark"]{--bg:#000;--card:#1c1c1e;--text:#f2f2f7;--sub:#98989f;--line:#38383a;--accent:#ff453a;--teal:#40c8e0;--hl:rgba(255,69,58,.25)}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:460px;margin:0 auto;padding:24px 16px 40px}
+h1{font-size:30px;font-weight:700;letter-spacing:-.5px;text-align:center;margin:8px 0 4px}
+.sub{text-align:center;color:var(--sub);font-size:15px;margin:0 0 22px}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;aspect-ratio:1/1;max-width:340px;margin:0 auto}
+.cell{background:var(--bg);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .3s;border:1.5px solid transparent;text-align:center;padding:2px}
+.cell b{font-size:clamp(28px,9vw,40px);font-weight:600;color:var(--accent);line-height:1}
+.cell span{font-size:12px;font-weight:600;color:var(--teal);margin-top:4px}
+.cell.on{background:var(--hl);border-color:var(--accent);transform:scale(1.05)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:.5px solid var(--line);gap:12px}
+.row:last-of-type{border-bottom:0}
+.row label{font-size:16px}
+select{font:inherit;font-size:16px;color:var(--accent);background:transparent;border:0;text-align:right;text-align-last:right;max-width:55%}
+button{width:100%;font:inherit;font-size:17px;font-weight:600;color:#fff;background:var(--accent);border:0;border-radius:14px;padding:15px;cursor:pointer}
+button:active{opacity:.8}
+#out{display:none}
+#out h2{font-size:13px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px}
+.kv{font-size:16px;line-height:1.7}
+.kv b{font-weight:600}
+.big{font-size:20px;font-weight:700;margin:12px 0;color:var(--accent)}
+.how{font-size:16px;line-height:1.55;margin:10px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Thiên Xá Đáo Phương</h1>
+<p class="sub">Phi Thiên Xá · Hoa Giáp</p>
+
+<div class="card"><div class="grid" id="grid"></div></div>
+
+<div class="card">
+<div class="row"><label for="selY">Năm</label><select id="selY"></select></div>
+<div class="row"><label for="selA">Tháng cần xem</label><select id="selA"></select></div>
+<div class="row"><label for="selB">Ngày Thiên Xá</label>
+<select id="selB"><option>Mậu Dần</option><option>Giáp Ngọ</option><option>Mậu Thân</option><option>Giáp Tý</option></select></div>
+</div>
+
+<button onclick="calculate()">Tính Phi Thiên Xá</button>
+
+<div class="card" id="out" style="margin-top:16px">
+<h2>Kết quả</h2>
+<div class="kv" id="info"></div>
+<div class="big" id="cung"></div>
+<h2 style="margin-top:14px">Làm gì · Làm ra sao</h2>
+<p class="how" id="how1"></p>
+<p class="how" id="how2"></p>
+</div>
+</div>
+
+<script>
+const hoaGiap=["Giáp Tý","Ất Sửu","Bính Dần","Đinh Mão","Mậu Thìn","Kỷ Tị","Canh Ngọ","Tân Mùi","Nhâm Thân","Quý Dậu","Giáp Tuất","Ất Hợi","Bính Tý","Đinh Sửu","Mậu Dần","Kỷ Mão","Canh Thìn","Tân Tị","Nhâm Ngọ","Quý Mùi","Giáp Thân","Ất Dậu","Bính Tuất","Đinh Hợi","Mậu Tý","Kỷ Sửu","Canh Dần","Tân Mão","Nhâm Thìn","Quý Tị","Giáp Ngọ","Ất Mùi","Bính Thân","Đinh Dậu","Mậu Tuất","Kỷ Hợi","Canh Tý","Tân Sửu","Nhâm Dần","Quý Mão","Giáp Thìn","Ất Tị","Bính Ngọ","Đinh Mùi","Mậu Thân","Kỷ Dậu","Canh Tuất","Tân Hợi","Nhâm Tý","Quý Sửu","Giáp Dần","Ất Mão","Bính Thìn","Đinh Tị","Mậu Ngọ","Kỷ Mùi","Canh Thân","Tân Dậu","Nhâm Tuất","Quý Hợi"];
+const cycle=[5,6,7,8,9,1,2,3,4];
+const cungNames={1:"Khảm",2:"Khôn",3:"Chấn",4:"Tốn",5:"Trung Cung",6:"Kiền (Càn)",7:"Đoài",8:"Cấn",9:"Ly"};
+const directions={1:"Bắc",2:"Tây Nam",3:"Đông",4:"Đông Nam",5:"Trung Cung",6:"Tây Bắc",7:"Tây",8:"Đông Bắc",9:"Nam"};
+const layout=[4,9,2,3,5,7,8,1,6];
+
+const grid=document.getElementById("grid");
+layout.forEach(n=>{const d=document.createElement("div");d.className="cell";d.id="cell"+n;d.innerHTML=`<b>${n}</b><span>${directions[n]}</span>`;grid.appendChild(d)});
+const opts=hoaGiap.map(x=>`<option>${x}</option>`).join("");
+document.getElementById("selY").innerHTML=opts;
+document.getElementById("selA").innerHTML=opts;
+document.getElementById("selY").value="Bính Ngọ";
+
+function calculate(){
+  document.querySelectorAll(".cell").forEach(c=>c.classList.remove("on"));
+  const Y=selY.value,A=selA.value,B=selB.value;
+  const d=(hoaGiap.indexOf(B)-hoaGiap.indexOf(A)+60)%60;
+  const n=cycle[d%9];
+  document.getElementById("cell"+n).classList.add("on");
+  const dir=directions[n];
+  document.getElementById("info").innerHTML=`Năm <b>${Y}</b><br>Tháng <b>${A}</b><br>Ngày <b>${B}</b>`;
+  document.getElementById("cung").textContent=n===5?`Thiên Xá đáo Trung Cung`:`Thiên Xá đáo cung ${cungNames[n]}, hướng ${dir}.`;
+  let h1,h2;
+  if(n===5){
+    h1=`Cúng giải ách ngày Thiên Xá ${B} này đặt bàn hương án, mâm lễ chay lạt (vật phẩm cúng thuần chay) ở chính giữa (trung tâm) của nhà hoặc khu vườn, không gian sống; người khấn vái quay mặt về hướng bàn hương án thường dùng.`;
+    h2=`Cúng xong có thể đi chùa, đền, cúng dường, bố thí, phóng sinh, làm việc thiện giúp người / giúp vật ngay tại nơi mình đang ở và khu vực xung quanh.`;
+  }else{
+    h1=`Cúng giải ách ngày Thiên Xá ${B} này đặt bàn hương án, mâm lễ chay lạt (vật phẩm cúng thuần chay) ở phương ${dir} của nhà hoặc khu vườn, không gian sống; hướng người khấn vái quay mặt về phương ${dir}.`;
+    h2=`Cúng xong có thể đi chùa, đền, cúng dường, bố thí, phóng sinh, làm việc thiện giúp người / giúp vật ở hướng ${dir} so với nơi đang ở.`;
+  }
+  document.getElementById("how1").textContent=h1;
+  document.getElementById("how2").textContent=h2;
+  const o=document.getElementById("out");o.style.display="block";
+  o.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+</script>
+</body>
+</html>
