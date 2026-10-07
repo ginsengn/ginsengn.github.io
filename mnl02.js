@@ -361,7 +361,11 @@ function nct2RuiRo(starKey, cungChi, ma) {
 const NCT2_CANH_GIAC_TEN = {
     thap: 'THẤP', trung: 'TRUNG BÌNH (đề phòng cấp trung)', cao: 'CAO', caoNhat: 'CAO NHẤT',
 };
-function nct2CanhGiac(meta, tinh, groupEff, gate, cungTD) {
+function nct2CanhGiac(meta, tinh, groupEff, gate, cungTD, tang2Chan) {
+    // Tầng 2 = Tử/Mộ/Tuyệt (CHẶN): môi trường vận hành đã sụp, không đủ điều
+    // kiện để Tầng 3 thể hiện ra kết quả — cảnh giác tối thiểu phải là CAO,
+    // không được rơi về "trung" chỉ vì Tầng 3 (tính ngầm) có vẻ không quá tệ.
+    if (tang2Chan) return (meta.phanLoai === 'hung' || cungTD) ? 'caoNhat' : 'cao';
     if (meta.phanLoai === 'hung') {
         if (!tinh.ok) return 'caoNhat';
         return (groupEff === 'suy' || !gate) ? 'cao' : 'trung';
@@ -544,7 +548,7 @@ function nct2PhanTichThang(p, thangChi) {
     if (p.starKey === 'Thiên Xung' && tinh.ok && (NCT_CHI_DUONG.includes(p.cungChi) || NCT_CHI_DUONG.includes(p.dayChi))) {
         P.giaiCuu = 'Thiên Xung gặp cung/ngày Dương: có khả năng cứu giải tai ách, hung hoạ.';
     }
-    const canh = nct2CanhGiac(meta, tinh, groupEff, gate, cungTD);
+    const canh = nct2CanhGiac(meta, tinh, groupEff, gate, cungTD, r3.tang2.muc === 'tuMoTuyet');
     const phoi = nct2PhoiSaoCung(P);
     if (r3.canBao.length) phoi.push('TẦNG 1 (Nguyệt, độ khó khởi đầu — không đổi kết luận cuối): ' + r3.canBao.join(' '));
     const congHuong = nct2CongHuong(p.starKey, p.cungChi);
